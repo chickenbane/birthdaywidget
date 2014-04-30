@@ -213,3 +213,6 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+libs/android-support-v4.jar
+gen/com/googlejobapp/birthdaywidget/R.java
+gen/com/googlejobapp/birthdaywidget/BuildConfig.java
