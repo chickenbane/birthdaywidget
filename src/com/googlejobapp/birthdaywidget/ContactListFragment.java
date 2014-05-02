@@ -2,6 +2,7 @@ package com.googlejobapp.birthdaywidget;
 
 import android.app.ListFragment;
 import android.app.LoaderManager;
+import android.content.Context;
 import android.content.CursorLoader;
 import android.content.Loader;
 import android.database.Cursor;
@@ -10,11 +11,13 @@ import android.os.Bundle;
 import android.provider.ContactsContract.CommonDataKinds.Event;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Data;
+import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.CursorAdapter;
 import android.widget.SimpleCursorAdapter;
+import android.widget.TextView;
 
 public class ContactListFragment extends ListFragment implements
 		LoaderManager.LoaderCallbacks<Cursor>, AdapterView.OnItemClickListener {
@@ -30,6 +33,8 @@ public class ContactListFragment extends ListFragment implements
 
 	private static final int INDEX_CONTACT_ID = 0;
 	private static final int INDEX_LOOKUP_KEY = 1;
+	private static final int INDEX_CONTACT_NAME = 2;
+	private static final int INDEX_BIRTHDATE = 3;
 
 	private SimpleCursorAdapter mAdapter;
 
@@ -37,16 +42,12 @@ public class ContactListFragment extends ListFragment implements
 	public void onActivityCreated(final Bundle savedInstanceState) {
 		super.onActivityCreated(savedInstanceState);
 
-		mAdapter = new SimpleCursorAdapter(getActivity(),
-				android.R.layout.simple_list_item_2, null, new String[] {
-						Data.DISPLAY_NAME_PRIMARY, Event.START_DATE },
-				new int[] { android.R.id.text1, android.R.id.text2 }, 0);
+		mAdapter = new ContactListCursorAdapter(getActivity());
 		setListAdapter(mAdapter);
 
 		getListView().setOnItemClickListener(this);
 
 		getLoaderManager().initLoader(0, null, this);
-
 	}
 
 	@Override
@@ -78,6 +79,54 @@ public class ContactListFragment extends ListFragment implements
 
 		Log.v(TAG, "Contact URI: " + contactUri);
 		Log.v(TAG, "num=" + cursor.getCount());
+	}
+
+	private static class ContactListCursorAdapter extends SimpleCursorAdapter {
+		public ContactListCursorAdapter(final Context context) {
+			super(context, R.layout.contact_row, null, new String[] {
+					Data.DISPLAY_NAME_PRIMARY, Event.START_DATE }, new int[] {
+					R.id.textViewName, R.id.textViewDays }, 0);
+		}
+
+		@Override
+		public void bindView(final View view, final Context context,
+				final Cursor cursor) {
+			ContactRow row = (ContactRow) view.getTag();
+			if (row == null) {
+				row = new ContactRow();
+				row.tvName = (TextView) view.findViewById(R.id.textViewName);
+				row.tvDays = (TextView) view.findViewById(R.id.textViewDays);
+				row.tvDate = (TextView) view.findViewById(R.id.textViewDate);
+				row.tvAge = (TextView) view.findViewById(R.id.textViewAge);
+				view.setTag(row);
+			}
+
+			final ContactBirthday birthday = ContactBirthday
+					.createContactBirthday(cursor.getString(INDEX_BIRTHDATE));
+			final String formattedBirthday = DateUtils.formatDateTime(null,
+					birthday.getNextBirthday(), DateUtils.FORMAT_SHOW_DATE);
+			final String daysAway = birthday.getDaysAway() + " days";
+
+			final Integer age = birthday.getNextBirthdayAge();
+			String contactAge;
+			if (age == null) {
+				contactAge = "-";
+			} else {
+				contactAge = age.toString();
+			}
+
+			row.tvName.setText(cursor.getString(INDEX_CONTACT_NAME));
+			row.tvDays.setText(daysAway);
+			row.tvDate.setText(formattedBirthday);
+			row.tvAge.setText(contactAge);
+		}
+	}
+
+	private static class ContactRow {
+		TextView tvName;
+		TextView tvDays;
+		TextView tvDate;
+		TextView tvAge;
 	}
 
 }
